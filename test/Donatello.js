@@ -37,7 +37,7 @@ describe("Transactions & balances", () => {
     expect(signers[1].sendTransaction({ to: donatello.address, value: ethers.utils.parseEther("0") })).to.be.revertedWith("Incorrect donation amount")
   });
 
-  it("Contract owner should be able to extract some", async () => {
+  it("Contract owner should be able to extract some, but not too much", async () => {
     // donate 5 eth
     await signers[1].sendTransaction({ to: donatello.address, value: ethers.utils.parseEther("5") });
 
@@ -45,8 +45,12 @@ describe("Transactions & balances", () => {
     const contractEthBalance = await donatello.getBalance();
     expect(parseInt(ethers.utils.formatEther(contractEthBalance))).to.equal(5);
 
-    // extract 2 eth to owner's balance
     const ownerBalanceBeforeExtraction = await signers[0].getBalance();
+
+    // try to extract 10 eth to owner's balance
+    expect(donatello.extractAmount(signers[0].address, ethers.utils.parseEther("10"))).to.be.revertedWith("Specified amount is higher than contract's balance")
+
+    // extract 2 eth to owner's balance
     await donatello.extractAmount(signers[0].address, ethers.utils.parseEther("2"));
 
     const ownerBalanceAfterExtraction = await signers[0].getBalance();
@@ -84,6 +88,18 @@ describe("Transactions & balances", () => {
     // try to extract eth to non-owner address
     expect(donatello.connect(signers[2]).extractAllDonations(signers[2].address)).to.be.revertedWith("Ownable: caller is not the owner");
   });
+
+  // it("Shouldn't be able to return donations to address that never donated", async () => {
+  //   // donate 1 eth from one address
+  //   await signers[1].sendTransaction({ to: donatello.address, value: ethers.utils.parseEther("1") });
+  //   const contractEthBalance = await donatello.getBalance();
+
+  //   // check if contract balance is correct
+  //   expect(parseInt(ethers.utils.formatEther(contractEthBalance))).to.equal(1);
+
+  //   // try to extract eth to another address
+  //   expect(donatello.returnDonationsToAddress(signers[19].address)).to.be.revertedWith("No donations originating from address found");
+  // });
 
   it("Multiple donations should be registered correctly and owner should be able to extract all", async () => {
     // donate from 3 different addresses 6 eth in total
@@ -128,37 +144,37 @@ describe("Transactions & balances", () => {
     expect((await donatello.getAllDonators()).length).to.equal(1);
   });
 
-  it("Contract owner should be able to return donated funds to donator's address", async () => {
-    const donatorBalanceBeforeDonating = await signers[1].getBalance();
+  // it("Contract owner should be able to return donated funds to donator's address", async () => {
+  //   const donatorBalanceBeforeDonating = await signers[1].getBalance();
 
-    // send donation and check if donation is registered
-    await signers[1].sendTransaction({ to: donatello.address, value: ethers.utils.parseEther("4") });
-    expect(parseInt(ethers.utils.formatEther(await donatello.getBalance()))).to.equal(4);
-    expect(parseInt(ethers.utils.formatEther(await donatello.getDonationsByDonator(signers[1].address)))).to.equal(4);
+  //   // send donation and check if donation is registered
+  //   await signers[1].sendTransaction({ to: donatello.address, value: ethers.utils.parseEther("4") });
+  //   expect(parseInt(ethers.utils.formatEther(await donatello.getBalance()))).to.equal(4);
+  //   expect(parseInt(ethers.utils.formatEther(await donatello.getDonationsByDonator(signers[1].address)))).to.equal(4);
 
-    // send another donation from the same address and check if donation is registered
-    await signers[1].sendTransaction({ to: donatello.address, value: ethers.utils.parseEther("3") });
-    expect(parseInt(ethers.utils.formatEther(await donatello.getBalance()))).to.equal(7);
-    expect(parseInt(ethers.utils.formatEther(await donatello.getDonationsByDonator(signers[1].address)))).to.equal(7);
+  //   // send another donation from the same address and check if donation is registered
+  //   await signers[1].sendTransaction({ to: donatello.address, value: ethers.utils.parseEther("3") });
+  //   expect(parseInt(ethers.utils.formatEther(await donatello.getBalance()))).to.equal(7);
+  //   expect(parseInt(ethers.utils.formatEther(await donatello.getDonationsByDonator(signers[1].address)))).to.equal(7);
 
-    // check if donator's address has 7 eth less
-    const donatorBalanceAfterDonating = await signers[1].getBalance();
-    expect(
-      parseInt(ethers.utils.formatEther(donatorBalanceAfterDonating))
-    )
-      .to.equal(
-        parseInt(ethers.utils.formatEther(donatorBalanceBeforeDonating)) - 7
-      );
+  //   // check if donator's address has 7 eth less
+  //   const donatorBalanceAfterDonating = await signers[1].getBalance();
+  //   expect(
+  //     parseInt(ethers.utils.formatEther(donatorBalanceAfterDonating))
+  //   )
+  //     .to.equal(
+  //       parseInt(ethers.utils.formatEther(donatorBalanceBeforeDonating)) - 7
+  //     );
 
-    // return all donations to donator and check if contract's records are correct
-    await donatello.returnDonationsToAddress(signers[1].address);
-    expect(parseInt(ethers.utils.formatEther(await donatello.getBalance()))).to.equal(0);
-    expect(parseInt(ethers.utils.formatEther(await donatello.getDonationsByDonator(signers[1].address)))).to.equal(0);
-    expect((await donatello.getAllDonators())).to.not.include(signers[1].address);
+  //   // return all donations to donator and check if contract's records are correct
+  //   await donatello.returnDonationsToAddress(signers[1].address);
+  //   expect(parseInt(ethers.utils.formatEther(await donatello.getBalance()))).to.equal(0);
+  //   expect(parseInt(ethers.utils.formatEther(await donatello.getDonationsByDonator(signers[1].address)))).to.equal(0);
+  //   expect((await donatello.getAllDonators())).to.not.include(signers[1].address);
 
-    // check if eth returned to donator's balance
-    const restoredEth = parseInt(ethers.utils.formatEther(await signers[1].getBalance()));
-    const initialEth = parseInt(ethers.utils.formatEther(donatorBalanceBeforeDonating));
-    expect(restoredEth).to.equal(initialEth);
-  });
+  //   // check if eth returned to donator's balance
+  //   const restoredEth = parseInt(ethers.utils.formatEther(await signers[1].getBalance()));
+  //   const initialEth = parseInt(ethers.utils.formatEther(donatorBalanceBeforeDonating));
+  //   expect(restoredEth).to.equal(initialEth);
+  // });
 });

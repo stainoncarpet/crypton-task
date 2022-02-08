@@ -1,119 +1,112 @@
 const { ethers } = require("ethers");
 
-const network = "rinkeby";
+const network = "ropsten"; // ""rinkeby
+
+const API_TOKEN = process.env.ALCHEMY_API_URL_KEY;
 
 const runTasks = async () => {
     task("accounts", "Prints the list of accounts")
-        .setAction(async (taskArguments, hre, runSuper) => {
+        .setAction(async (taskArguments, hre) => {
             const accounts = await hre.ethers.getSigners();
 
             for (const account of accounts) {
-                console.log(account.address);
+                console.log(account.address);ß
             }
         })
     ;
 
-    task("refund", "Return donations to donator")
-        .addParam("address", "Donator's address")
-        .setAction(async (taskArguments, hre) => {
-            const contractSchema = require("../artifacts/contracts/Donatello.sol/Donatello.json");
-            const alchemyProvider = new ethers.providers.AlchemyProvider(network, process.env.ALCHEMY_API_URL_KEY);
-            const walletOwner = new ethers.Wallet(process.env.METAMASK_PRIVATE_KEY, alchemyProvider);
-            const contractInstance = new ethers.Contract(taskArguments.address, contractSchema.abi, walletOwner);
+    // task("refund", "Return donations to donator")
+    //     .addParam("address", "Donator's address")
+    //     .setAction(async (taskArguments, hre) => {
+    //         const contractSchema = require("../artifacts/contracts/Donatello.sol/Donatello.json");
+    //         const alchemyProvider = new ethers.providers.AlchemyProvider(network, process.env.ALCHEMY_API_URL_KEY);
+    //         const walletOwner = new ethers.Wallet(process.env.METAMASK_PRIVATE_KEY, alchemyProvider);
+    //         const contractInstance = new ethers.Contract(taskArguments.address, contractSchema.abi, walletOwner);
 
-            const returnedAmount = await contractInstance.getDonationsByDonator(walletOwner.address);
-            await returnedAmount.wait();
-            const tx = await contractInstance.returnDonationsToAddress(walletOwner.address);
-            await tx.wait();
+    //         const returnedAmount = await contractInstance.getDonationsByDonator(walletOwner.address);
+    //         await returnedAmount.wait();
+    //         const tx = await contractInstance.returnDonationsToAddress(walletOwner.address);
+    //         await tx.wait();
 
-            console.log(`${ethers.utils.formatEther(returnedAmount)} returned to address ${walletOwner.address}`);
-        })
-    ;
+    //         console.log(`${ethers.utils.formatEther(returnedAmount)} returned to address ${walletOwner.address}`);
+    //     })
+    // ;
 
     task("donate", "Send a certain amount of wei to the contract's address")
+        .addParam("address", "Contract address")
         .addParam("amount", "Amount to donate in wei")
-        .setAction(async (taskArguments, hre, runSuper) => {
-            const contractSchema = require("../artifacts/contracts/Donatello.sol/Donatello.json");
-            const alchemyProvider = new ethers.providers.AlchemyProvider(network, process.env.ALCHEMY_API_URL_KEY);
+        .setAction(async (taskArguments, hre) => {
+            const alchemyProvider = new ethers.providers.AlchemyProvider(network, API_TOKEN);
             const walletOwner = new ethers.Wallet(process.env.METAMASK_PRIVATE_KEY, alchemyProvider);
-            const contractInstance = new ethers.Contract(taskArguments.address, contractSchema.abi, walletOwner);
 
-            const donationTransaction = await contractInstance.sendTransaction({ to: contractInstance.address, value: taskArguments.amount});
-            await donationTransaction.wait();
+            const donationTransaction = await walletOwner.sendTransaction({ to: taskArguments.address, value: taskArguments.amount});
 
             console.log(`Donation of ${taskArguments.amount} was successful`);
+            console.log("Receipt: ", donationTransaction);
         })
     ;
 
-    task("extract", "Extract specified amount from contract to specified address")
-        .addParam("address", "Adress to send funds to")
+    task("extract", "Extract specified amount from contract's donations pool to specified address")
+        .addParam("addressc", "Contract address")
+        .addParam("addressr", "Recipient's address")
         .addParam("amount", "Amount to send")
-        .setAction(async (taskArguments, hre, runSuper) => {
+        .setAction(async (taskArguments, hre) => {
             const contractSchema = require("../artifacts/contracts/Donatello.sol/Donatello.json");
-            const alchemyProvider = new ethers.providers.AlchemyProvider(network, process.env.ALCHEMY_API_URL_KEY);
+            const alchemyProvider = new ethers.providers.AlchemyProvider(network, API_TOKEN);
             const walletOwner = new ethers.Wallet(process.env.METAMASK_PRIVATE_KEY, alchemyProvider);
-            const contractInstance = new ethers.Contract(taskArguments.address, contractSchema.abi, walletOwner);
+            const contractInstance = new ethers.Contract(taskArguments.addressc, contractSchema.abi, walletOwner);
 
-            const extractionTx = await contractInstance.extractAmount(taskArguments.address, taskArguments.amount);
-            await extractionTx.wait();
+            const extractionTx = await contractInstance.extractAmount(taskArguments.addressr, taskArguments.amount);
 
             console.log(`Extracted ${taskArguments.amount} to ${taskArguments.address} successfully`);
+            console.log("Receipt: ", extractionTx);
         })
     ;
 
-    task("donators", "Prints the list of accounts")
-        .addParam("amount", "")
-        .setAction(async (taskArguments, hre, runSuper) => {
+    task("donators", "Show list of donators")
+        .addParam("address", "Contract address")
+        .setAction(async (taskArguments, hre) => {
             const contractSchema = require("../artifacts/contracts/Donatello.sol/Donatello.json");
-            const alchemyProvider = new ethers.providers.AlchemyProvider(network, process.env.ALCHEMY_API_URL_KEY);
+
+            const alchemyProvider = new ethers.providers.AlchemyProvider(network, API_TOKEN);
             const walletOwner = new ethers.Wallet(process.env.METAMASK_PRIVATE_KEY, alchemyProvider);
             const contractInstance = new ethers.Contract(taskArguments.address, contractSchema.abi, walletOwner);
 
             const donatorTx = await contractInstance.getAllDonators();
-            await donatorTx.wait();
 
-            console.log(`${donatorsTx.length} donators found: ${donatorsTx}`);
+            console.log(`${donatorTx.length} donators found: ${donatorTx}`);
         })
     ;
 
     task("donator", "View donator's total amount donated")
-        .addParam("address", "Donator's address")
-        .setAction(async (taskArguments, hre, runSuper) => {
+        .addParam("addressc", "Contract address")
+        .addParam("addressd", "Donators's address")
+        .setAction(async (taskArguments, hre) => {
             const contractSchema = require("../artifacts/contracts/Donatello.sol/Donatello.json");
-            const alchemyProvider = new ethers.providers.AlchemyProvider(network, process.env.ALCHEMY_API_URL_KEY);
+            const alchemyProvider = new ethers.providers.AlchemyProvider(network, API_TOKEN);
             const walletOwner = new ethers.Wallet(process.env.METAMASK_PRIVATE_KEY, alchemyProvider);
-            const contractInstance = new ethers.Contract(taskArguments.address, contractSchema.abi, walletOwner);
+            const contractInstance = new ethers.Contract(taskArguments.addressc, contractSchema.abi, walletOwner);
 
-            const donatorTx = await contractInstance.getDonationsByDonator(taskArguments.address);
-            await donatorTx.wait();
+            const donated = await contractInstance.getDonationsByDonator(taskArguments.addressd);
 
-            console.log(`Address donated ${donatorTx} in total`);
+            console.log(`Address donated ${donated} wei in total`);
         })
     ;
 
-    task("terminate", "Terminate contract")
-        .addParam("address", "Contract address")
-        .setAction(async (taskArguments, hre, runSuper) => {
-            const contractSchema = require("../artifacts/contracts/Donatello.sol/Donatello.json");
-            const defaultProvider = new ethers.providers.getDefaultProvider("http://localhost:8545")
-            const walletOwner = new ethers.Wallet(process.env.METAMASK_PRIVATE_KEY, defaultProvider);
-            const contractInstance = new ethers.Contract(taskArguments.address, contractSchema.abi, walletOwner);
+    // task("terminate", "Terminate contract")
+    //     .addParam("address", "Contract address")
+    //     .setAction(async (taskArguments, hre) => {
+    //         const contractSchema = require("../artifacts/contracts/Donatello.sol/Donatello.json");
 
-            const signers = await hre.ethers.getSigners();
-            await signers[19].sendTransaction({ to: "0x844142a15023cAb209F5fA33FB0497854aD60344", value: ethers.utils.parseEther("10")})
-            // 0x844142a15023cAb209F5fA33FB0497854aD60344
+    //         const defaultProvider = new ethers.providers.AlchemyProvider(network, process.env.ALCHEMY_API_URL_KEY);
+    //         const walletOwner = new ethers.Wallet(process.env.METAMASK_PRIVATE_KEY, defaultProvider);
+    //         const contractInstance = new ethers.Contract(taskArguments.address, contractSchema.abi, walletOwner);
 
-            // const contractSchema = require("../artifacts/contracts/Donatello.sol/Donatello.json");
-            // const defaultProvider = new ethers.providers.getDefaultProvider("http://localhost:8545")
-            // const walletOwner = new ethers.Wallet(process.env.METAMASK_PRIVATE_KEY, defaultProvider);
-            // const contractInstance = new ethers.Contract(taskArguments.address, contractSchema.abi, walletOwner);
+    //         const terminationTx = await contractInstance.terminateContract();
 
-            // const terminationTx = await contractInstance.terminateContract();
-            // await terminationTx.wait();
-
-            // console.log(`Contract terminated ${terminationTx}`);
-        })
-    ;
+    //         console.log(`Contract terminated ${terminationTx}`);
+    //     })
+    // ;
 };
 
 module.exports = { runTasks };
