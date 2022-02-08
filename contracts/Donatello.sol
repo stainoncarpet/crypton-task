@@ -38,7 +38,7 @@ contract Donatello is Ownable {
         _to.transfer(_amount);
     }
 
-    function getBalance() public view returns (uint) {
+    function getBalance() external view returns (uint) {
         return address(this).balance;
     }
 
@@ -49,14 +49,6 @@ contract Donatello is Ownable {
     function getDonationsByDonator(address _donator) external view returns(uint256) {
         return donationsByDonator[_donator];
     } 
-
-    // function returnDonationsToAddress(address payable _donator) external onlyOwner {
-    //     require(donationsByDonator[_donator] > 0, "No donations originating from address found");
-    //     uint256 amountToReturn = donationsByDonator[_donator];
-    //     _donator.transfer(amountToReturn);
-    //     donationsByDonator[_donator] = 0;
-    //     donatorsList.remove(_donator);
-    // }
 
     function terminateContract() external onlyOwner {
         selfdestruct(payable(owner()));

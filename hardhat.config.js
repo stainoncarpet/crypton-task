@@ -15,10 +15,6 @@ module.exports = {
     rinkeby: {
       url: "https://eth-rinkeby.alchemyapi.io/v2/" + process.env.ALCHEMY_API_URL_KEY,
       accounts: [`0x${process.env.METAMASK_PRIVATE_KEY}`]
-    },
-    ropsten: {
-      url: "https://eth-ropsten.alchemyapi.io/v2/" + process.env.ALCHEMY_API_URL_KEY,
-      accounts: [`0x${process.env.METAMASK_PRIVATE_KEY}`]
     }
   }
 };
